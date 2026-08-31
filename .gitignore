@@ -1,0 +1,10 @@
+# Binarios e imágenes booteables
+*.bin
+*.img
+*.iso
+*.o
+
+# Archivos temporales de editores
+*.swp
+*~
+.DS_Store
