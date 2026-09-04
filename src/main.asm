@@ -18,6 +18,7 @@ bucle_principal:
     jmp bucle_principal
 
 ; Archivos de inclusión
+%include "src/defin.inc"
 %include "src/boot.asm"
 
 ; Relleno y firma de arranque exacta
