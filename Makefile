@@ -2,19 +2,19 @@
 
 # Compilador y emulador
 
-ASM = nasm # Compilador de ensamblador
-EMU = qemu-system-x86_64 # Emulador para arquitectura x86_64
+ASM = nasm# Compilador de ensamblador
+EMU = qemu-system-x86_64# Emulador para arquitectura x86_64
 
 # Flags para el compilador de ensamblador
-ASMFLAGS = -f bin # Flags para el compilador de ensamblador
+ASMFLAGS = -f bin# Flags para el compilador de ensamblador
 
 # Directorios de la tarea
-SRC_DIR = src # Directorio de código fuente
-BIN_DIR = bin # Directorio de archivos binarios
+SRC_DIR = src# Directorio de código fuente
+BIN_DIR = bin# Directorio de archivos binarios
 
 # Archivos fuente y binarios
-TARGET_SRC = $(SRC_DIR)/main.asm # Archivo fuente principal
-TARGET_BIN = $(BIN_DIR)/boot.bin # Archivo binario principal
+TARGET_SRC = $(SRC_DIR)/main.asm# Archivo fuente principal
+TARGET_BIN = $(BIN_DIR)/boot.bin# Archivo binario principal
 
 # Regla por defecto
 .PHONY: all build run clean
@@ -37,6 +37,6 @@ run:
 
 # Regla de Limpieza
 # Elimina los archivos binarios generados
-clean:
+clean:#
 	@rm -rf $(BIN_DIR)
 	@echo "Archivos binarios eliminados."
