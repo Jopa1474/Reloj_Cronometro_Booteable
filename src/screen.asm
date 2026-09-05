@@ -28,7 +28,13 @@ print_string:
     ret
 
 set_cursor:
+    push ax
+    push bx
+
     mov ah, 0x02
     mov bh, 0x00
     int 0x10
+
+    pop bx
+    pop ax
     ret

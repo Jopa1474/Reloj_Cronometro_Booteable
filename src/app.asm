@@ -1,13 +1,19 @@
-bits 16
+[BITS 16]
 
 start:
 
-    ; preparar segmentos
-    push cs
-    pop ds
-    push cs
-    pop es
+    ; Se carga la app en 0x1000:0000
 
+    mov ax, cs
+    mov ds, ax
+    mov es, ax
+
+    ; Stack de la aplicación
+    mov ax, 0x9000
+    mov ss, ax
+    mov sp, 0xFFFE
+
+    call leer_rtc
     call draw_screen
 
 
@@ -20,30 +26,37 @@ main_loop:
     mov dx, 86A0h
     int 15h
 
-    ; Actualiza para los relojes y eso
-    call update_mode
+    call leer_rtc
 
-    ; Se revisa si hay tecla de cambio
-    mov ah, 0x01
-    int 0x16
-    jz main_loop
+    ; Actualiza según el modo
+    cmp byte [modo_actual], 0
+    je update_clock
 
-    mov ah, 0x00
-    int 0x16
+    jmp update_crono
+
+update_clock:    
+    call show_time
+    jmp hay_teclado
+
+update_crono:
+    call show_crono
+    jmp hay_teclado
+
+hay_teclado:
+    call leer_teclado
+
+    mov al, [tecla_presionada]
+
+    ; Si vale 0, no hay tecla nueva
+    cmp al, 0
+    je main_loop
+
+    ; reiniciar la tecla
+    mov byte [tecla_presionada], 0
+
     call key
 
     jmp main_loop
-
-update_mode:    
-    cmp byte[mode], 0
-    je update_watch
-
-    ; TODO: cronometro
-    ret
-
-update_watch:
-    call show_time
-    ret
 
 key:
     cmp al, 'm'
@@ -55,16 +68,16 @@ key:
     ret
 
 mode_switch:
-    cmp byte [mode], 0
+    cmp byte [modo_actual], 0
     je switch_to_crono
 
     ; Si ya estaba en crono tons a reloj
-    mov byte [mode], 0
+    mov byte [modo_actual], 0
     call draw_screen
     ret
 
 switch_to_crono:
-    mov byte [mode], 1
+    mov byte [modo_actual], 1
     call draw_screen
     ret
 
@@ -74,61 +87,65 @@ draw_screen:
     mov si, title
     call print_string
 
-    mov si, newline
-    call print_string
+    mov dh, 4
+    mov dl, 0
+    call set_cursor
 
-    cmp byte [mode], 0
+    cmp byte [modo_actual], 0
     je clock_mode
 
     mov si, mode_crono_text
     call print_string
-
+    
+    mov dh, 6
+    mov dl, 0
+    call set_cursor
     mov si, crono_time
     call print_string
+
+    call show_crono
     ret
 
 clock_mode:
     mov si, mode_reloj_text
     call print_string
-
-    mov si, newline
-    call print_string
     
+    mov dh, 6
+    mov dl, 0
+    call set_cursor
+
     mov si, reloj_time
     call print_string
-    call show_time
 
+    call show_time
     ret
 
-print_bcd:
+print_2digits:
     push ax
     push bx
-    push cx
     push dx
 
-    mov bl, al
-    
-    ; Decenas (Se hace un shift right de 4)
-    mov dl, bl
-    mov cl, 4
-    shr dl, cl
-    add dl, '0'
+    xor ah, ah
+    mov bl, 10
+    div bl
 
-    mov al, dl
+    ; AL = decenas
+    ; AH = unidades
+
+    mov dl, ah
+
+    add al, '0'
     mov ah, 0x0E
+    mov bh, 0
     int 0x10
 
-    ; Unidades
-    mov dl, bl
-    and dl, 0X0F 
-    add dl, '0'
-
     mov al, dl
+    add al, '0'
     mov ah, 0x0E
+    mov bh, 0
     int 0x10
 
     pop dx
-    pop cx
     pop bx
     pop ax
     ret
@@ -140,26 +157,47 @@ show_time:
     mov dl, 6
     call set_cursor
 
-
-    mov ah, 0x02
-    int 0x1A
-
-    mov al, ch
-    call print_bcd
+    mov al, [reloj_horas]
+    call print_2digits
 
     mov al, ':'
     mov ah, 0x0E
     int 0x10
 
-    mov al, cl
-    call print_bcd
+    mov al, [reloj_mins]
+    call print_2digits
 
     mov al, ':'
     mov ah, 0x0E
     int 0x10
 
-    mov al, dh
-    call print_bcd
+    mov al, [reloj_segs]
+    call print_2digits
+
+    ret
+
+show_crono:
+
+    mov dh, 6
+    mov dl, 12
+    call set_cursor
+
+    mov al, [cron_horas]
+    call print_2digits
+
+    mov al, ':'
+    mov ah, 0x0E
+    int 0x10
+
+    mov al, [cron_mins]
+    call print_2digits
+
+    mov al, ':'
+    mov ah, 0x0E
+    int 0x10
+
+    mov al, [cron_segs]
+    call print_2digits
 
     ret
 
@@ -176,12 +214,14 @@ title db '========================================', 13, 10
       db '========================================', 13, 10, 0
 
 
-mode_reloj_text db 'Modo: RELOJ', 13, 10, 0
-mode_crono_text db 'Modo: CRONOMETRO', 13, 10, 0
+mode_reloj_text db 'Modo: RELOJ', 0
+mode_crono_text db 'Modo: CRONOMETRO', 0
 
 reloj_time db 'Hora: ', 0
 crono_time db 'Cronometro: ', 0
 
-newline db 13, 10, 0
-
+; Módulos y las variables
+%include "defin.inc"
+%include "rtc.asm"
+%include "teclado.asm"
 %include "screen.asm"
