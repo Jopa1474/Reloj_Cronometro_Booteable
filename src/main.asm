@@ -15,11 +15,15 @@ inicio:
 
 ; Bucle principal de la aplicación
 bucle_principal:
+    call leer_rtc
+    call leer_teclado
     jmp bucle_principal
 
 ; Archivos de inclusión
 %include "src/defin.inc"
 %include "src/boot.asm"
+%include "src/rtc.asm"
+%include "src/teclado.asm"
 
 ; Relleno y firma de arranque exacta
 times 510 - ($ - $$) db 0
