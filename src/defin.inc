@@ -10,6 +10,7 @@ cron_horas db 0
 cron_mins db 0
 cron_segs db 0
 cron_estado db 0
+cron_ultimo_seg db 0
 
 ; Control de modo y estado del Sistema
 modo_actual db 0

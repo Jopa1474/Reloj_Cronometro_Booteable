@@ -18,14 +18,14 @@ inicio:
     call esperar_enter
 
     ; Se reinicia el sistema del disco antes de leer
-    xor ah, ah
+    mov ah, 0
     mov dl, [boot_drive]
     int 0x13
 
-    ; Carga app.bin en su espacio
+    ; Carga app.bin en su espacio (ES:BX = Puntero de dirección de buffer)
     mov ax, 0x1000
     mov es, ax
-    xor bx, bx
+    mov bx, 0
 
     mov ah, 0x02        ; INT 13h: leer sectores
     mov al, 16          ; 16 sectores = 8192 bytes
@@ -37,8 +37,8 @@ inicio:
     int 0x13
     jc disk_error
 
-    ; Transferir el control a la aplicación
-    jmp 0x1000:0x0000
+    ; Empieza a ejecutar la app en su dirección
+    jmp 0x1000:0x0000 
 
 disk_error:
     mov si, msg_error
@@ -54,5 +54,6 @@ msg_error db 13, 10, 'ERROR pa'
 
 %include "boot.asm"
 
+; Rellena lo que sobre de los 510 bytes y los últimos dos son el 55 AA
 times 510 - ($ - $$) db 0
 dw 0xAA55

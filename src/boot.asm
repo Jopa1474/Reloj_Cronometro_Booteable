@@ -16,7 +16,7 @@ esperar_enter:
     call imprimir_char
 
 .esperar:
-    xor ah, ah
+    mov ah, 0
     int 0x16
     cmp al, 13
     jne .esperar

@@ -4,6 +4,7 @@ start:
 
     ; Se carga la app en 0x1000:0000
 
+    ; Esto para que todo esté igual en el code segment
     mov ax, cs
     mov ds, ax
     mov es, ax
@@ -27,6 +28,7 @@ main_loop:
     int 15h
 
     call leer_rtc
+    call update_crono_time
 
     ; Actualiza según el modo
     cmp byte [modo_actual], 0
@@ -34,9 +36,14 @@ main_loop:
 
     jmp update_crono
 
+
 update_clock:    
     call show_time
     jmp hay_teclado
+
+crono_inc:
+    call inc_crono
+    ret
 
 update_crono:
     call show_crono
@@ -62,8 +69,20 @@ key:
     cmp al, 'm'
     je mode_switch
 
-    cmp al, "M"
+    cmp al, 'M'
     je mode_switch
+
+    cmp al, 'c'
+    je toggle_chrono
+
+    cmp al, 'C'
+    je toggle_chrono
+
+    cmp al, 'r'
+    je reset_crono
+
+    cmp al, 'R'
+    je reset_crono
 
     ret
 
@@ -125,7 +144,7 @@ print_2digits:
     push bx
     push dx
 
-    xor ah, ah
+    mov ah, 0
     mov bl, 10
     div bl
 
@@ -206,9 +225,6 @@ show_crono:
 
 ;################## Variables y cosas así ################
 
-
-mode db 0    ; se inicia en modo reloj, 1 es cronometro
-
 title db '========================================', 13, 10
       db '        RELOJ / CRONOMETRO', 13, 10
       db '========================================', 13, 10, 0
@@ -225,3 +241,4 @@ crono_time db 'Cronometro: ', 0
 %include "rtc.asm"
 %include "teclado.asm"
 %include "screen.asm"
+%include "chrono.asm"
