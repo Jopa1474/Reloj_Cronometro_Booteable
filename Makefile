@@ -1,40 +1,42 @@
-BUILD = build
-SRC = src
+# Makefile - Tarea 1 de Sistemas Operativos
 
-IMAGE = $(BUILD)/test.img
-BOOT = $(BUILD)/boot_test.bin
-APP = $(BUILD)/app.bin
+# Compilador y emulador
 
+ASM = nasm# Compilador de ensamblador
+EMU = qemu-system-x86_64# Emulador para arquitectura x86_64
 
-all: $(IMAGE)
+# Flags para el compilador de ensamblador
+ASMFLAGS = -f bin# Flags para el compilador de ensamblador
 
+# Directorios de la tarea
+SRC_DIR = src# Directorio de código fuente
+BIN_DIR = bin# Directorio de archivos binarios
 
-$(BUILD):
-	mkdir -p $(BUILD)
+# Archivos fuente y binarios
+TARGET_SRC = $(SRC_DIR)/main.asm# Archivo fuente principal
+TARGET_BIN = $(BIN_DIR)/boot.bin# Archivo binario principal
 
+# Regla por defecto
+.PHONY: all build run clean
 
-$(BOOT): $(SRC)/boot_test.asm | $(BUILD)
-	nasm -f bin $(SRC)/boot_test.asm -o $(BOOT)
+all: build run
 
+# Regla de Compilacion
+# Crea la carpeta bin si no existe y ensambla el codigo 
 
-$(APP): $(SRC)/app.asm | $(BUILD)
-	nasm -f bin -I $(SRC)/ $(SRC)/app.asm -o $(APP)
+build:
+	@mkdir -p $(BIN_DIR)
+	$(ASM) $(ASMFLAGS) $(TARGET_SRC) -o $(TARGET_BIN)
+	@echo "Compilación completada. Archivo binario generado en $(TARGET_BIN)"
 
-
-$(IMAGE): $(BOOT) $(APP)
-	dd if=/dev/zero of=$(IMAGE) bs=512 count=2880
-	dd if=$(BOOT) of=$(IMAGE) conv=notrunc
-	dd if=$(APP) of=$(IMAGE) bs=512 seek=1 conv=notrunc
-
-
-run: $(IMAGE)
-	qemu-system-i386 \
-		-drive file=$(IMAGE),format=raw,if=floppy \
-		-rtc base=localtime
-
-
-clean:
-	rm -rf $(BUILD)
+# Regla de Ejecucion
+# Ejecuta el archivo binario generado en QEMU
+run:
+	$(EMU) -fda $(TARGET_BIN)
 
 
-.PHONY: all run clean
+# Regla de Limpieza
+# Elimina los archivos binarios generados
+clean:#
+	@rm -rf $(BIN_DIR)
+	@echo "Archivos binarios eliminados."
