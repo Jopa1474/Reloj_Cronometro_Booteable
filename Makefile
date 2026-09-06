@@ -41,7 +41,7 @@ install: $(TARGET)
 	sudo cp $(TARGET) $(USB_PATH)/EFI/BOOT/BOOTX64.EFI
 	sudo umount $(USB_PATH)
 	sync
-	@echo "¡Instalación completada con éxito!"
+	@echo "Instalación completada con éxito"
 
 # Regla para limpiar archivos generados
 clean:
