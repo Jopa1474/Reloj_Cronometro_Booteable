@@ -40,3 +40,16 @@ bcd_a_dec:
     add al, bl ; AL = (decenas * 10) + unidades
     pop bx
     ret
+
+dec_a_bcd:
+    push bx
+
+    mov ah, 0
+    mov bl, 10
+    div bl
+
+    shl al, 4
+    or al, ah
+
+    pop bx 
+    ret

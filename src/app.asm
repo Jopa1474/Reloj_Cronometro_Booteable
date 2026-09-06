@@ -1,6 +1,7 @@
 [BITS 16]
 
 start:
+    cli
 
     ; Se carga la app en 0x1000:0000
 
@@ -14,8 +15,11 @@ start:
     mov ss, ax
     mov sp, 0xFFFE
 
+    sti
+
     call leer_rtc
     call draw_screen
+    call setup_alarm
 
 
 main_loop:
@@ -26,6 +30,10 @@ main_loop:
     mov cx, 0001h
     mov dx, 86A0h
     int 15h
+
+    ; Revisa si se triggereó la alarma
+    cmp byte [alarm_trigg], 1
+    je show_alarm
 
     call leer_rtc
     call update_crono_time
@@ -84,6 +92,18 @@ key:
     cmp al, 'R'
     je reset_crono
 
+    cmp al, 'a'
+    je get_alarm
+
+    cmp al, 'A'
+    je get_alarm
+
+    cmp al, 'x'
+    je cancel_alarm
+
+    cmp al, 'X'
+    je cancel_alarm
+
     ret
 
 mode_switch:
@@ -123,6 +143,7 @@ draw_screen:
     call print_string
 
     call show_crono
+    call show_keys
     ret
 
 clock_mode:
@@ -137,6 +158,7 @@ clock_mode:
     call print_string
 
     call show_time
+    call show_keys
     ret
 
 print_2digits:
@@ -220,8 +242,97 @@ show_crono:
 
     ret
 
+show_alarm:
+    call clear_screen
 
+    mov dh, 10
+    mov dl, 30
+    call set_cursor
 
+    mov si, alarm_text
+    call print_string
+
+    ; esperar una tecla
+    mov ah, 00h
+    int 16h
+
+    call cancel_alarm
+    call draw_screen
+
+    jmp main_loop
+
+leer_digito:
+    mov ah, 00h
+    int 16h
+
+    cmp al, '0'
+    jb leer_digito
+
+    cmp al, '9'
+    ja leer_digito
+
+    ; mostrar el número escrito
+    mov ah, 0Eh
+    int 10h
+
+    sub al, '0'
+
+    ret
+
+get_alarm:
+
+    call clear_screen
+
+    mov si, alarm_text2
+    call print_string
+
+    ; Se guardan los digitos de la alarma
+    call leer_digito
+    mov [alarm_d1], al
+
+    call leer_digito
+    mov [alarm_d2], al
+
+    mov al, ':'
+    mov ah, 0Eh
+    int 10h
+
+    call leer_digito
+    mov [alarm_d3], al
+
+    call leer_digito
+    mov [alarm_d4], al
+
+    ; Se acomodan y se ponen juntas y así
+    ; Las horas
+    mov al, [alarm_d1]
+    mov bl, 10
+    mul bl
+    add al, [alarm_d2]
+
+    mov [alarm_hora], al
+
+    ; minutos
+
+    mov al, [alarm_d3]
+    mov bl, 10
+    mul bl
+    add al, [alarm_d4]
+
+    mov [alarm_min], al
+
+    call alarm
+    call draw_screen
+    ret
+
+show_keys:
+    mov dh, 10
+    mov dl, 0
+    call set_cursor
+
+    mov si, controls_text
+    call print_string
+    ret
 
 ;################## Variables y cosas así ################
 
@@ -232,9 +343,18 @@ title db '========================================', 13, 10
 
 mode_reloj_text db 'Modo: RELOJ', 0
 mode_crono_text db 'Modo: CRONOMETRO', 0
+alarm_text db '*** !!!ALARMAAAAAAAAa!!! ***', 0
+alarm_text2 db 'Ingrese la alarma HH:MM: ', 0
+alarm_error db 13, 10, 'Hora invalida', 0
 
 reloj_time db 'Hora: ', 0
 crono_time db 'Cronometro: ', 0
+
+controls_text db '[M] Cambiar modo', 13, 10
+              db '[C] Iniciar/Pausar cronometro', 13, 10
+              db '[R] Reiniciar cronometro', 13, 10
+              db '[A] Configurar alarma', 13, 10
+              db '[X] Cancelar alarma', 13, 10
 
 ; Módulos y las variables
 %include "defin.inc"
@@ -242,3 +362,4 @@ crono_time db 'Cronometro: ', 0
 %include "teclado.asm"
 %include "screen.asm"
 %include "chrono.asm"
+%include "alarm.asm"
