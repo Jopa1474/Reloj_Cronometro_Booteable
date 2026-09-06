@@ -1,40 +1,50 @@
-# Makefile - Tarea 1 de Sistemas Operativos
+# Variables de compilación
+CC      = gcc
+LD      = ld
+OBJCOPY = objcopy
 
-# Compilador y emulador
+# Directorios de encabezados de GNU-EFI
+EFIINC = /usr/include/efi
+EFIINCS = -I$(EFIINC) -I$(EFIINC)/x86_64
 
-ASM = nasm# Compilador de ensamblador
-EMU = qemu-system-x86_64# Emulador para arquitectura x86_64
+# Banderas de compilación para UEFI 64-bit
+CFLAGS  = $(EFIINCS) -fno-stack-protector -fpic -fshort-wchar -mno-red-zone -Wall
+LDFLAGS = -shared -Bsymbolic -L/usr/lib -T /usr/lib/elf_x86_64_efi.lds /usr/lib/crt0-efi-x86_64.o
 
-# Flags para el compilador de ensamblador
-ASMFLAGS = -f bin# Flags para el compilador de ensamblador
+# Lista de módulos del proyecto (aquí iremos agregando los nuevos .o poco a poco)
+OBJS = screen.o main.o
+TARGET = BOOTX64.EFI
 
-# Directorios de la tarea
-SRC_DIR = src# Directorio de código fuente
-BIN_DIR = bin# Directorio de archivos binarios
+# Dispositivo USB y punto de montaje
+USB_DEV = /dev/sdb1
+USB_PATH = /mnt/usb
 
-# Archivos fuente y binarios
-BOOT_BIN = $(BIN_DIR)/boot.bin
-APP_BIN  = $(BIN_DIR)/app.bin
-IMAGE    = $(BIN_DIR)/test.img
+all: $(TARGET)
 
+# Regla para compilar archivos .c a .o
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
-# Compilar to 
-all:
-	@mkdir -p $(BIN_DIR)
-	$(ASM) -f bin -I $(SRC_DIR)/ $(SRC_DIR)/main.asm -o $(BOOT_BIN)
-	$(ASM) -f bin -I $(SRC_DIR)/ $(SRC_DIR)/app.asm -o $(APP_BIN)
+# Regla para enlazar los objetos
+main.so: $(OBJS)
+	$(LD) $(LDFLAGS) $(OBJS) -o $@ -lgnuefi -lefi
 
-	dd if=/dev/zero of=$(IMAGE) bs=512 count=2880 status=none
-	dd if=$(BOOT_BIN) of=$(IMAGE) conv=notrunc status=none
-	dd if=$(APP_BIN) of=$(IMAGE) bs=512 seek=1 conv=notrunc status=none
+# Generación del archivo ejecutable EFI
+$(TARGET): main.so
+	$(OBJCOPY) -j .text -j .sdata -j .data -j .dynamic -j .dynsym -j .rel -j .rela -j .reloc --target=efi-app-x86_64 $< $@
 
-	@echo "Compilacion terminada"
+# Regla para copiar directamente a la USB limpia
+install: $(TARGET)
+	@echo "Montando USB e instalando $(TARGET)..."
+	sudo mount $(USB_DEV) $(USB_PATH)
+	sudo mkdir -p $(USB_PATH)/EFI/BOOT
+	sudo cp $(TARGET) $(USB_PATH)/EFI/BOOT/BOOTX64.EFI
+	sudo umount $(USB_PATH)
+	sync
+	@echo "¡Instalación completada con éxito!"
 
-# Ejecutar en QEMU
-run: all
-	$(EMU) -drive file=$(IMAGE),format=raw,if=floppy -rtc base=localtime
-
-# Borrar la bosorola
+# Regla para limpiar archivos generados
 clean:
-	rm -rf $(BIN_DIR)
-	@echo "Archivos eliminados"
+	rm -f *.o *.so $(TARGET)
+
+.PHONY: all install clean
