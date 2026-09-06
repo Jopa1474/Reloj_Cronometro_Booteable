@@ -12,7 +12,7 @@ CFLAGS  = $(EFIINCS) -fno-stack-protector -fpic -fshort-wchar -mno-red-zone -Wal
 LDFLAGS = -shared -Bsymbolic -L/usr/lib -T /usr/lib/elf_x86_64_efi.lds /usr/lib/crt0-efi-x86_64.o
 
 # Lista de módulos del proyecto (aquí iremos agregando los nuevos .o poco a poco)
-OBJS = screen.o main.o
+OBJS = screen.o teclado.o main.o
 TARGET = BOOTX64.EFI
 
 # Dispositivo USB y punto de montaje
