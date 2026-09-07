@@ -17,6 +17,9 @@ inicio:
     call mostrar_bienvenida
     call esperar_enter
 
+    mov si, msg_cargando
+    call imprimir_char
+
     ; Se reinicia el sistema del disco antes de leer
     mov ah, 0
     mov dl, [boot_drive]
@@ -37,6 +40,12 @@ inicio:
     int 0x13
     jc disk_error
 
+    mov si, msg_cargado
+    call imprimir_char
+
+    mov si, msg_salto
+    call imprimir_char
+
     ; Empieza a ejecutar la app en su dirección
     jmp 0x1000:0x0000 
 
@@ -51,6 +60,10 @@ hang:
 
 boot_drive db 0
 msg_error db 13, 10, 'ERROR pa'
+
+msg_cargando db 13, 10, 'Cargando aplicacion...', 13, 10, 0
+msg_cargado  db 'Aplicacion cargada.', 13, 10, 0
+msg_salto    db 'Entrando a la aplicacion...', 13, 10, 0
 
 %include "boot.asm"
 

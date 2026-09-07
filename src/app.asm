@@ -17,6 +17,10 @@ start:
 
     sti
 
+    ; PRUEBA
+    mov si, msg_app
+    call print_string
+
     call leer_rtc
     call draw_screen
     call setup_alarm
@@ -335,6 +339,11 @@ show_keys:
     ret
 
 ;################## Variables y cosas así ################
+; lsblk
+; sudo dd if=bin/test.img of=/dev/sdb bs=4M status=progress conv=fsync
+; sync
+; sudo eject /dev/sdb
+
 
 title db '========================================', 13, 10
       db '        RELOJ / CRONOMETRO', 13, 10
@@ -346,6 +355,7 @@ mode_crono_text db 'Modo: CRONOMETRO', 0
 alarm_text db '*** !!!ALARMAAAAAAAAa!!! ***', 0
 alarm_text2 db 'Ingrese la alarma HH:MM: ', 0
 alarm_error db 13, 10, 'Hora invalida', 0
+msg_app db 'APP INICIADA CORRECTAMENTE', 0
 
 reloj_time db 'Hora: ', 0
 crono_time db 'Cronometro: ', 0
@@ -354,7 +364,7 @@ controls_text db '[M] Cambiar modo', 13, 10
               db '[C] Iniciar/Pausar cronometro', 13, 10
               db '[R] Reiniciar cronometro', 13, 10
               db '[A] Configurar alarma', 13, 10
-              db '[X] Cancelar alarma', 13, 10
+              db '[X] Cancelar alarma', 13, 10, 0
 
 ; Módulos y las variables
 %include "defin.inc"
