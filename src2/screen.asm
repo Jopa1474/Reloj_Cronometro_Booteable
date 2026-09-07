@@ -1,105 +1,81 @@
-; MÓDULO: screen.asm
-; ENTORNO: UEFI x86-64 Nativo
-; DESCRIPCIÓN: Administra la salida de consola (ConOut) usando servicios UEFI.
+; Módulo: screen.asm
+; Descripción: Funciones de renderizado, manejo de color e interfaz de usuario UEFI.
 
-bits 64                         ; Modo x86-64 bits
-default rel                     ; Inserción de direccionamiento relativo al RIP (código posicionable)
+bits 64
+default rel
 
-; Exportar etiquetas para que otros archivos (.asm) puedan llamarlas
 global Screen_Init
 global Screen_Clear
 global Screen_SetColor
 global Screen_DrawWelcome
-global Screen_DrawTitle
-global Screen_DrawControls
-
-
-; Sección de datos constantes (.data)
-; UEFI requiere cadenas codificadas en UTF-16 (UCS-2 de 16 bits por carácter).
-; Cada línea termina en retorno de carro (\r), salto de línea (\n) y cero de cierre (0).
+global Screen_DrawHeader
+global Screen_DrawFooter
 
 section .data
-    str_welcome1: dw __utf16__(`====================================================\r\n`), 0
-    str_welcome2: dw __utf16__(`   INSTITUTO TECNOLOGICO DE COSTA RICA - CE4303    \r\n`), 0
-    str_welcome3: dw __utf16__(`     TAREA 1: RELOJ / CRONOMETRO BOOTEABLE UEFI     \r\n`), 0
-    str_welcome4: dw __utf16__(`====================================================\r\n\r\n`), 0
-    str_welcome5: dw __utf16__(`Presione [ENTER] o cualquier tecla para iniciar...\r\n`), 0
+    ; Cadenas de texto para la pantalla de bienvenida
+    str_welcome1: dw __utf16__(`   INSTITUTO TECNOLOGICO DE COSTA RICA - CE4303    \r\n`), 0
+    str_welcome2: dw __utf16__(`     TAREA 1: RELOJ / CRONOMETRO BOOTEABLE UEFI     \r\n\r\n`), 0
+    str_welcome3: dw __utf16__(`Presione [ENTER] o cualquier tecla para iniciar...\r\n`), 0
 
-    str_marco:   dw __utf16__(`====================================================\r\n`), 0
-    str_titulo:  dw __utf16__(`             RELOJ / CRONOMETRO CON ALARMA          \r\n`), 0
-    str_ctrls:   dw __utf16__(`\r\n----------------------------------------------------\r\n`), 0
-                 dw __utf16__(`[M] Cambiar Modo | [C] Start/Pause Crono | [R] Reset\r\n`), 0
-                 dw __utf16__(`[A] Fijar Alarma | [X] Cancelar Alarma   | [ESC] Salir\r\n`), 0
-                 dw __utf16__(`----------------------------------------------------\r\n`), 0
+    ; Cadenas de texto para la maquetación principal
+    str_titulo:   dw __utf16__(`             RELOJ / CRONOMETRO CON ALARMA          \r\n`), 0
+    str_lbl_modo: dw __utf16__(`   MODO ACTIVO : [RELOJ PRINCIPAL]\r\n\r\n`), 0
 
-
-; Sección de código (.text)
-; Contiene las instrucciones que la CPU ejecuta directamente.
+    ; Etiquetas individuales de controles para la sección inferior
+    str_ctrl_hdr: dw __utf16__(` CONTROLES DISPONIBLES:\r\n`), 0
+    str_btn_m:    dw __utf16__(`   [M] Cambiar Modo (Reloj / Cronometro / Alarma)\r\n`), 0
+    str_btn_c:    dw __utf16__(`   [C] Iniciar / Pausar Cronometro\r\n`), 0
+    str_btn_r:    dw __utf16__(`   [R] Reiniciar / Resetear Cronometro\r\n`), 0
+    str_btn_a:    dw __utf16__(`   [A] Configurar / Fijar Hora de Alarma\r\n`), 0
+    str_btn_x:    dw __utf16__(`   [X] Desactivar / Cancelar Alarma\r\n`), 0
+    str_btn_esc:  dw __utf16__(`   [ESC] Salir del Sistema UEFI\r\n`), 0
 
 section .text
 
-
-; Función: Screen_Init
-; Descripción: Configura el entorno de consola UEFI inicial (desactiva cursor).
-; Entrada:  RDX = Puntero a la tabla UEFI SystemTable
-
+; Inicializa los servicios de pantalla e inhabilita la visibilidad del cursor.
 Screen_Init:
-    sub rsp, 40 ; Reservar 32 bytes (Shadow Space) + 8 bytes (alineación)
-    mov r12, rdx ; Guardar SystemTable en R12 (R12 no es destruido por llamadas)
+    sub rsp, 40
+    mov r12, rdx                ; Guarda el puntero de la UEFI System Table.
+    mov rax, [r12 + 64]         ; Obtiene la interfaz Simple Text Output (ConOut).
+    mov rcx, rax
+    xor rdx, rdx                ; Parámetro 0 para ocultar el cursor.
+    mov r8, [rax + 56]          ; Puntero a la función EnableCursor.
+    call r8
+    add rsp, 40
+    ret
 
-    ; Estructura UEFI: SystemTable -> ConOut (offset +64) -> EnableCursor (offset +56)
-    mov rax, [r12 + 64]         ; RAX = Dirección de ConOut
-    mov rcx, rax                ; Parámetro 1 (RCX): Puntero al objeto ConOut
-    xor rdx, rdx                ; Parámetro 2 (RDX): 0 (FALSE = ocultar cursor)
-    mov r8, [rax + 56]          ; R8 = Dirección de la función EnableCursor
-    call r8                     ; Ejecutar llamada UEFI
-
-    add rsp, 40                 ; Liberar espacio reservado en la pila
-    ret                         ; Retornar al llamador
-
-; Función: Screen_Clear
-; Descripción: Limpia todo el texto de la pantalla.
-; Entrada:  R12 = Puntero guardado a SystemTable
-
+; Limpia todo el contenido del terminal visual.
 Screen_Clear:
     sub rsp, 40
-    mov rax, [r12 + 64]         ; RAX = ConOut
-    mov rcx, rax                ; Parámetro 1: Puntero a ConOut
-    mov r8, [rax + 48]          ; R8 = Dirección de ClearScreen (offset +48)
-    call r8                     ; Ejecutar ClearScreen()
+    mov rax, [r12 + 64]         ; Obtiene la interfaz ConOut.
+    mov rcx, rax
+    mov r8, [rax + 48]          ; Puntero a la función ClearScreen.
+    call r8
     add rsp, 40
     ret
 
-
-; Función: Screen_SetColor
-; Descripción: Cambia el color de fondo y primer plano del texto impreso.
-; Entrada:  R12 = SystemTable, RDX = Código hexadecimal del color (ej: 0x0E = Amarillo)
+; Cambia el color del texto utilizando los atributos de UEFI.
 Screen_SetColor:
     sub rsp, 40
-    mov rax, [r12 + 64]         ; RAX = ConOut
-    mov rcx, rax                ; Parámetro 1: Puntero a ConOut
-                                ; Parámetro 2: RDX ya trae el color deseado
-    mov r8, [rax + 40]          ; R8 = Dirección de SetAttribute (offset +40)
-    call r8                     ; Ejecutar SetAttribute(ConOut, Color)
+    mov rax, [r12 + 64]         ; Obtiene la interfaz ConOut.
+    mov rcx, rax
+    mov r8, [rax + 40]          ; Puntero a la función SetAttribute.
+    call r8
     add rsp, 40
     ret
 
-; Función: Screen_DrawWelcome
-; Descripción: Muestra la pantalla inicial con información de la asignatura/instituto.
-; Entrada:  R12 = SystemTable
-
+; Despliega la pantalla inicial de bienvenida al bootear.
 Screen_DrawWelcome:
     sub rsp, 40
-
-    ; Configurar texto a color Cyan Claro (0x0B)
-    mov rdx, 0x0B               
+    
+    ; Establece el color cian para la identificación institucional.
+    mov rdx, 0x0B
     call Screen_SetColor
 
-    ; Paso 2: Imprimir cada línea usando ConOut->OutputString (offset +8)
-    mov rax, [r12 + 64]         ; RAX = ConOut
-    mov rcx, rax                ; Parámetro 1: ConOut
-    lea rdx, [str_welcome1]     ; Parámetro 2: Dirección de la cadena UTF-16
-    mov r8, [rax + 8]           ; R8 = Función OutputString
+    mov rax, [r12 + 64]
+    mov rcx, rax
+    lea rdx, [str_welcome1]
+    mov r8, [rax + 8]           ; Puntero a la función OutputString.
     call r8
 
     mov rax, [r12 + 64]
@@ -108,49 +84,29 @@ Screen_DrawWelcome:
     mov r8, [rax + 8]
     call r8
 
+    ; Establece el color amarillo para la instrucción de inicio.
+    mov rdx, 0x0E
+    call Screen_SetColor
+
     mov rax, [r12 + 64]
     mov rcx, rax
     lea rdx, [str_welcome3]
     mov r8, [rax + 8]
     call r8
 
-    mov rax, [r12 + 64]
-    mov rcx, rax
-    lea rdx, [str_welcome4]
-    mov r8, [rax + 8]
-    call r8
-
-    ; Paso 3: Cambiar a Amarillo (0x0E) para la instrucción interactiva
-    mov rdx, 0x0E
-    call Screen_SetColor
-
-    mov rax, [r12 + 64]
-    mov rcx, rax
-    lea rdx, [str_welcome5]
-    mov r8, [rax + 8]
-    call r8
-
-    ; Paso 4: Restaurar color estándar blanco/gris (0x07)
+    ; Restaura el color gris predeterminado.
     mov rdx, 0x07
     call Screen_SetColor
-
     add rsp, 40
     ret
 
-; Función: Screen_DrawTitle
-; Descripción: Dibuja el marco superior del aplicativo principal.
-; Entrada:  R12 = SystemTable
-
-Screen_DrawTitle:
+; Dibuja la sección superior de la pantalla con el título y el modo actual.
+Screen_DrawHeader:
     sub rsp, 40
-    mov rdx, 0x0B               ; Cyan
-    call Screen_SetColor
 
-    mov rax, [r12 + 64]
-    mov rcx, rax
-    lea rdx, [str_marco]
-    mov r8, [rax + 8]
-    call r8
+    ; Establece el color cian para el título de la aplicación.
+    mov rdx, 0x0B
+    call Screen_SetColor
 
     mov rax, [r12 + 64]
     mov rcx, rax
@@ -158,33 +114,73 @@ Screen_DrawTitle:
     mov r8, [rax + 8]
     call r8
 
+    ; Establece el color verde para mostrar el modo activo.
+    mov rdx, 0x0A
+    call Screen_SetColor
+
     mov rax, [r12 + 64]
     mov rcx, rax
-    lea rdx, [str_marco]
+    lea rdx, [str_lbl_modo]
     mov r8, [rax + 8]
     call r8
 
-    mov rdx, 0x07               ; Restaurar color base
-    call Screen_SetColor
     add rsp, 40
     ret
 
-; Función: Screen_DrawControls
-; Descripción: Dibuja la barra de comandos e instrucciones en la parte inferior.
-; Entrada:  R12 = SystemTable
-
-Screen_DrawControls:
+; Dibuja la sección inferior imprimiendo las opciones de control desde .data.
+Screen_DrawFooter:
     sub rsp, 40
-    mov rdx, 0x0B               ; Cyan
+
+    ; Establece el color cian para el encabezado del menú.
+    mov rdx, 0x0B
     call Screen_SetColor
 
     mov rax, [r12 + 64]
     mov rcx, rax
-    lea rdx, [str_ctrls]
+    lea rdx, [str_ctrl_hdr]
     mov r8, [rax + 8]
     call r8
 
-    mov rdx, 0x07               ; Restaurar color base
+    ; Establece el color gris para el texto descriptivo de las teclas.
+    mov rdx, 0x07
     call Screen_SetColor
+
+    ; Impresión secuencial de cada instrucción de tecla.
+    mov rax, [r12 + 64]
+    mov rcx, rax
+    lea rdx, [str_btn_m]
+    mov r8, [rax + 8]
+    call r8
+
+    mov rax, [r12 + 64]
+    mov rcx, rax
+    lea rdx, [str_btn_c]
+    mov r8, [rax + 8]
+    call r8
+
+    mov rax, [r12 + 64]
+    mov rcx, rax
+    lea rdx, [str_btn_r]
+    mov r8, [rax + 8]
+    call r8
+
+    mov rax, [r12 + 64]
+    mov rcx, rax
+    lea rdx, [str_btn_a]
+    mov r8, [rax + 8]
+    call r8
+
+    mov rax, [r12 + 64]
+    mov rcx, rax
+    lea rdx, [str_btn_x]
+    mov r8, [rax + 8]
+    call r8
+
+    mov rax, [r12 + 64]
+    mov rcx, rax
+    lea rdx, [str_btn_esc]
+    mov r8, [rax + 8]
+    call r8
+
     add rsp, 40
     ret

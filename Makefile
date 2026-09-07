@@ -1,12 +1,12 @@
 ASM = nasm
 LD  = x86_64-w64-mingw32-ld
 
-#Cambiar segun la direccion del dispositivo USB y la ruta de montaje
+# Cambiar dependiendo de la dirección del dispositivo USB y el punto de montaje
 USB_DEV  ?= /dev/sdb1
 USB_PATH ?= /mnt/usb
 
 SRC_DIR = src2
-OBJS    = $(SRC_DIR)/screen.o $(SRC_DIR)/teclado.o $(SRC_DIR)/main.o
+OBJS    = $(SRC_DIR)/screen.o $(SRC_DIR)/teclado.o $(SRC_DIR)/rtc.o $(SRC_DIR)/utils.o $(SRC_DIR)/main.o
 TARGET  = BOOTX64.EFI
 
 all: $(TARGET)
