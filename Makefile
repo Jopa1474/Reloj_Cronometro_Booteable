@@ -1,40 +1,32 @@
-# Makefile - Tarea 1 de Sistemas Operativos
+ASM = nasm
+LD  = x86_64-w64-mingw32-ld
 
-# Compilador y emulador
+#Cambiar dependiendo de la ruta del dispositivo USB y el punto de montaje
+USB_DEV  ?= /dev/sdb1
+USB_PATH ?= /mnt/usb
 
-ASM = nasm# Compilador de ensamblador
-EMU = qemu-system-x86_64# Emulador para arquitectura x86_64
+SRC_DIR = src2
+OBJS    = $(SRC_DIR)/screen.o $(SRC_DIR)/main.o
+TARGET  = BOOTX64.EFI
 
-# Flags para el compilador de ensamblador
-ASMFLAGS = -f bin# Flags para el compilador de ensamblador
+all: $(TARGET)
 
-# Directorios de la tarea
-SRC_DIR = src# Directorio de código fuente
-BIN_DIR = bin# Directorio de archivos binarios
+$(SRC_DIR)/%.o: $(SRC_DIR)/%.asm
+	$(ASM) -f win64 $< -o $@
 
-# Archivos fuente y binarios
-BOOT_BIN = $(BIN_DIR)/boot.bin
-APP_BIN  = $(BIN_DIR)/app.bin
-IMAGE    = $(BIN_DIR)/test.img
+$(TARGET): $(OBJS)
+	$(LD) -subsystem 10 -e efi_main $(OBJS) -o $(TARGET)
 
+install: $(TARGET)
+	@echo "Montando USB ($(USB_DEV)) en $(USB_PATH)..."
+	sudo mount $(USB_DEV) $(USB_PATH)
+	sudo mkdir -p $(USB_PATH)/EFI/BOOT
+	sudo cp $(TARGET) $(USB_PATH)/EFI/BOOT/BOOTX64.EFI
+	sudo umount $(USB_PATH)
+	sync
+	@echo "¡Copia completada con exito!"
 
-# Compilar to 
-all:
-	@mkdir -p $(BIN_DIR)
-	$(ASM) -f bin -I $(SRC_DIR)/ $(SRC_DIR)/main.asm -o $(BOOT_BIN)
-	$(ASM) -f bin -I $(SRC_DIR)/ $(SRC_DIR)/app.asm -o $(APP_BIN)
-
-	dd if=/dev/zero of=$(IMAGE) bs=512 count=2880 status=none
-	dd if=$(BOOT_BIN) of=$(IMAGE) conv=notrunc status=none
-	dd if=$(APP_BIN) of=$(IMAGE) bs=512 seek=1 conv=notrunc status=none
-
-	@echo "Compilacion terminada"
-
-# Ejecutar en QEMU
-run: all
-	$(EMU) -drive file=$(IMAGE),format=raw,if=floppy -rtc base=localtime
-
-# Borrar la bosorola
 clean:
-	rm -rf $(BIN_DIR)
-	@echo "Archivos eliminados"
+	rm -f $(SRC_DIR)/*.o $(TARGET)
+
+.PHONY: all install clean
