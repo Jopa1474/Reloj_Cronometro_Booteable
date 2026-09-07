@@ -1,7 +1,5 @@
-; ==============================================================================
-; MÓDULO: main.asm
-; DESCRIPCIÓN: Flujo de inicio del programa (Punto de entrada EFI)
-; ==============================================================================
+; Módulo: main.asm
+; Descripción: Flujo de inicio del programa (Punto de entrada EFI)
 
 bits 64
 default rel
@@ -21,25 +19,24 @@ section .data
 
 section .text
 
-; ------------------------------------------------------------------------------
 ; PUNTO DE ENTRADA PRINCIPAL
 ; Al arrancar, UEFI coloca en RDX la dirección de memoria de SystemTable.
-; ------------------------------------------------------------------------------
+
 efi_main:
-    ; Paso 1: Preparar la pila reservando espacioombra (Shadow Space)
+    ; Preparar la pila reservando espacio sombra (Shadow Space)
     sub rsp, 56                 ; Reservar espacio en la pila para llamadas y alineación
 
-    ; Paso 2: Preservar la referencia maestra a SystemTable
+    ; Preservar la referencia maestra a SystemTable
     mov r12, rdx                ; Copiamos RDX (SystemTable) a R12 para no perderlo
 
-    ; Paso 3: Inicialización gráfica
+    ; Inicialización gráfica
     call Screen_Init            ; Configura la consola (oculta el cursor)
     call Screen_Clear           ; Limpia la pantalla dejándola en negro
 
-    ; Paso 4: Dibujar la Pantalla de Bienvenida (Requerimiento del TEC)
+    ; Dibujar la Pantalla de Bienvenida
     call Screen_DrawWelcome     ; Muestra el título del ITCR y la orden de presionar tecla
 
-    ; Paso 5: Bucle de espera de tecla (Pausa de confirmación)
+    ; Bucle de espera de tecla (Pausa de confirmación)
 .esperar_confirmacion:
     lea rdx, [rsp + 32]         ; RDX = Puntero a un buffer temporal en la pila
     mov rax, [r12 + 48]         ; RAX = Puntero a SystemTable->ConIn
@@ -50,7 +47,7 @@ efi_main:
     test rax, rax               ; ¿RAX == 0 (EFI_SUCCESS)?
     jnz .esperar_confirmacion   ; Si no es 0 (no hay tecla presioanda), repetir bucle
 
-    ; Paso 6: Transición a la interfaz principal
+    ; Transición a la interfaz principal
     call Screen_Clear           ; Limpiar la pantalla de bienvenida
     call Screen_DrawTitle       ; Dibujar el marco superior del reloj
 
@@ -66,7 +63,7 @@ efi_main:
 
     call Screen_DrawControls    ; Dibujar las instrucciones de control inferiores
 
-    ; Paso 7: Esperar una tecla final antes de salir
+    ; Esperar una tecla final antes de salir
 .esperar_salida:
     lea rdx, [rsp + 32]
     mov rax, [r12 + 48]         ; ConIn
@@ -76,7 +73,7 @@ efi_main:
     test rax, rax
     jnz .esperar_salida
 
-    ; Paso 8: Salida limpia del programa
+    ; Salida limpia del programa
     call Screen_Clear           ; Dejar pantalla limpia
     xor rax, rax                ; Devolver 0 (EFI_SUCCESS)
     add rsp, 56                 ; Restaurar la pila a su estado original

@@ -1,8 +1,6 @@
-; ==============================================================================
 ; MÓDULO: screen.asm
-; ENTORNO: UEFI x86-64 Nativo (Sin SO)
+; ENTORNO: UEFI x86-64 Nativo
 ; DESCRIPCIÓN: Administra la salida de consola (ConOut) usando servicios UEFI.
-; ==============================================================================
 
 bits 64                         ; Modo x86-64 bits
 default rel                     ; Inserción de direccionamiento relativo al RIP (código posicionable)
@@ -15,11 +13,11 @@ global Screen_DrawWelcome
 global Screen_DrawTitle
 global Screen_DrawControls
 
-; ------------------------------------------------------------------------------
-; SECCIÓN DE DATOS CONSTANTES (.data)
+
+; Sección de datos constantes (.data)
 ; UEFI requiere cadenas codificadas en UTF-16 (UCS-2 de 16 bits por carácter).
 ; Cada línea termina en retorno de carro (\r), salto de línea (\n) y cero de cierre (0).
-; ------------------------------------------------------------------------------
+
 section .data
     str_welcome1: dw __utf16__(`====================================================\r\n`), 0
     str_welcome2: dw __utf16__(`   INSTITUTO TECNOLOGICO DE COSTA RICA - CE4303    \r\n`), 0
@@ -34,20 +32,20 @@ section .data
                  dw __utf16__(`[A] Fijar Alarma | [X] Cancelar Alarma   | [ESC] Salir\r\n`), 0
                  dw __utf16__(`----------------------------------------------------\r\n`), 0
 
-; ------------------------------------------------------------------------------
-; SECCIÓN DE CÓDIGO (.text)
+
+; Sección de código (.text)
 ; Contiene las instrucciones que la CPU ejecuta directamente.
-; ------------------------------------------------------------------------------
+
 section .text
 
-; ------------------------------------------------------------------------------
-; FUNCIÓN: Screen_Init
-; PROPÓSITO: Configura el entorno de consola UEFI inicial (desactiva cursor).
-; ENTRADA:  RDX = Puntero a la tabla UEFI SystemTable
-; ------------------------------------------------------------------------------
+
+; Función: Screen_Init
+; Descripción: Configura el entorno de consola UEFI inicial (desactiva cursor).
+; Entrada:  RDX = Puntero a la tabla UEFI SystemTable
+
 Screen_Init:
-    sub rsp, 40                 ; Reservar 32 bytes (Shadow Space) + 8 bytes (alineación)
-    mov r12, rdx                ; Guardar SystemTable en R12 (R12 no es destruido por llamadas)
+    sub rsp, 40 ; Reservar 32 bytes (Shadow Space) + 8 bytes (alineación)
+    mov r12, rdx ; Guardar SystemTable en R12 (R12 no es destruido por llamadas)
 
     ; Estructura UEFI: SystemTable -> ConOut (offset +64) -> EnableCursor (offset +56)
     mov rax, [r12 + 64]         ; RAX = Dirección de ConOut
@@ -59,11 +57,10 @@ Screen_Init:
     add rsp, 40                 ; Liberar espacio reservado en la pila
     ret                         ; Retornar al llamador
 
-; ------------------------------------------------------------------------------
-; FUNCIÓN: Screen_Clear
-; PROPÓSITO: Limpia todo el texto de la pantalla.
-; ENTRADA:  R12 = Puntero guardado a SystemTable
-; ------------------------------------------------------------------------------
+; Función: Screen_Clear
+; Descripción: Limpia todo el texto de la pantalla.
+; Entrada:  R12 = Puntero guardado a SystemTable
+
 Screen_Clear:
     sub rsp, 40
     mov rax, [r12 + 64]         ; RAX = ConOut
@@ -73,11 +70,10 @@ Screen_Clear:
     add rsp, 40
     ret
 
-; ------------------------------------------------------------------------------
-; FUNCIÓN: Screen_SetColor
-; PROPÓSITO: Cambia el color de fondo y primer plano del texto impreso.
-; ENTRADA:  R12 = SystemTable, RDX = Código hexadecimal del color (ej: 0x0E = Amarillo)
-; ------------------------------------------------------------------------------
+
+; Función: Screen_SetColor
+; Descripción: Cambia el color de fondo y primer plano del texto impreso.
+; Entrada:  R12 = SystemTable, RDX = Código hexadecimal del color (ej: 0x0E = Amarillo)
 Screen_SetColor:
     sub rsp, 40
     mov rax, [r12 + 64]         ; RAX = ConOut
@@ -88,15 +84,14 @@ Screen_SetColor:
     add rsp, 40
     ret
 
-; ------------------------------------------------------------------------------
-; FUNCIÓN: Screen_DrawWelcome
-; PROPÓSITO: Muestra la pantalla inicial con información de la asignatura/instituto.
-; ENTRADA:  R12 = SystemTable
-; ------------------------------------------------------------------------------
+; Función: Screen_DrawWelcome
+; Descripción: Muestra la pantalla inicial con información de la asignatura/instituto.
+; Entrada:  R12 = SystemTable
+
 Screen_DrawWelcome:
     sub rsp, 40
 
-    ; Paso 1: Configurar texto a color Cyan Claro (0x0B)
+    ; Configurar texto a color Cyan Claro (0x0B)
     mov rdx, 0x0B               
     call Screen_SetColor
 
@@ -142,11 +137,10 @@ Screen_DrawWelcome:
     add rsp, 40
     ret
 
-; ------------------------------------------------------------------------------
-; FUNCIÓN: Screen_DrawTitle
-; PROPÓSITO: Dibuja el marco superior del aplicativo principal.
-; ENTRADA:  R12 = SystemTable
-; ------------------------------------------------------------------------------
+; Función: Screen_DrawTitle
+; Descripción: Dibuja el marco superior del aplicativo principal.
+; Entrada:  R12 = SystemTable
+
 Screen_DrawTitle:
     sub rsp, 40
     mov rdx, 0x0B               ; Cyan
@@ -175,11 +169,10 @@ Screen_DrawTitle:
     add rsp, 40
     ret
 
-; ------------------------------------------------------------------------------
-; FUNCIÓN: Screen_DrawControls
-; PROPÓSITO: Dibuja la barra de comandos e instrucciones en la parte inferior.
-; ENTRADA:  R12 = SystemTable
-; ------------------------------------------------------------------------------
+; Función: Screen_DrawControls
+; Descripción: Dibuja la barra de comandos e instrucciones en la parte inferior.
+; Entrada:  R12 = SystemTable
+
 Screen_DrawControls:
     sub rsp, 40
     mov rdx, 0x0B               ; Cyan
