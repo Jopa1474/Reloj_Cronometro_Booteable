@@ -1,7 +1,6 @@
-; ==============================================================================
-; MÓDULO: utils.asm
-; DESCRIPCIÓN: Funciones auxiliares de conversión numérica a texto UTF-16.
-; ==============================================================================
+; Módulo: utils.asm
+; Descripción: Funciones auxiliares de conversión numérica a texto UTF-16.
+
 
 bits 64
 default rel
@@ -10,12 +9,12 @@ global Utils_ByteToUTF16
 
 section .text
 
-; ------------------------------------------------------------------------------
-; FUNCIÓN: Utils_ByteToUTF16
-; PROPÓSITO: Convierte un byte (0-99) en 2 caracteres UTF-16 con cero a la izquierda.
-; ENTRADA:  CL = Número entero (0 a 99)
+
+; Función: Utils_ByteToUTF16
+; Descripción: Convierte un byte (0-99) en 2 caracteres UTF-16 con cero a la izquierda.
+; Entrada:  CL = Número entero (0 a 99)
 ;           RDX = Puntero a buffer de salida (3 WORDs: D1, D2, 0)
-; ------------------------------------------------------------------------------
+
 Utils_ByteToUTF16:
     movzx ax, cl                ; AX = Número a convertir
     mov bl, 10
