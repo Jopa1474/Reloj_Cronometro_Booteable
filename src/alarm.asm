@@ -28,15 +28,29 @@ alarm_handler:
     mov ax, cs
     mov ds, ax
 
+    ; Solo si la alarma sigue activa
+    cmp byte [alarm_on], 1
+    jne .fin
+
     mov byte [alarm_trigg], 1
 
+.fin:
     pop ds
     pop ax
     iret
 
 
 alarm:
-    ; se quita lo anterior
+    push ax
+    push bx
+    push cx
+    push dx
+    push ds
+
+    mov ax, cs
+    mov ds, ax
+
+    ; se quita toda alarma anterior
     mov ah, 07h
     int 1Ah
 
@@ -57,21 +71,46 @@ alarm:
     mov ah, 06h
     int 1Ah
 
-    jc error
+    mov ax, cs
+    mov ds, ax
+
+    jc .error
 
     mov byte [alarm_on], 1
     mov byte [alarm_trigg], 0
-    ret
 
-cancel_alarm:
-    mov ah, 07h
-    int 1Ah
+    jmp .fin
 
+.error:
     mov byte [alarm_on], 0
     mov byte [alarm_trigg], 0
 
+    pop ax
     ret
 
-error:
-    mov byte [alarm_on], 0
+.fin:
+    pop ds
+    pop dx
+    pop cx
+    pop bx
+    pop ax
     ret
+
+
+
+cancel_alarm:
+    push ax
+
+    ; ah = 07H desactiva las alarmas rtc
+    mov ah, 07h
+    int 1Ah
+
+
+    mov byte [alarm_on], 0
+    mov byte [alarm_trigg], 0
+    mov byte [alarm_hora], 0
+    mov byte [alarm_min], 0
+
+    pop ax
+    ret
+

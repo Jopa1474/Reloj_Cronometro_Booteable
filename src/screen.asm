@@ -38,3 +38,31 @@ set_cursor:
     pop bx
     pop ax
     ret
+
+
+; Fondo rojo para alarma
+fill_screen_red:
+    pusha
+
+    mov ax, 0600h
+    mov bh, 4Fh       ; fondo rojo + texto blanco brillante
+    mov cx, 0000h     ; fila 0, columna 0
+    mov dx, 184Fh     ; fila 24, columna 79
+    int 10h
+
+    popa
+    ret
+
+
+; para devolverla a lo normal
+fill_screen_normal:
+    pusha
+
+    mov ax, 0600h
+    mov bh, 0Fh       ; fondo negro + texto blanco brillante
+    mov cx, 0000h
+    mov dx, 184Fh
+    int 10h
+
+    popa
+    ret
