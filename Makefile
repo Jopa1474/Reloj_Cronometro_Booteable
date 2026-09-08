@@ -30,7 +30,7 @@ all:
 
 # Ejecutar en QEMU
 run: all
-	$(EMU) -drive file=$(IMAGE),format=raw,if=floppy -rtc base=localtime
+	$(EMU) -drive file=$(IMAGE),format=raw, -rtc base=localtime
 
 # Grabar la imagen binaria en una USB concreta
 # Uso: sudo make burn DEV=/dev/sdX  (reemplazar sdX por el dispositivo USB real)

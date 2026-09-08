@@ -67,6 +67,30 @@ msg_salto    db 'Entrando a la aplicacion...', 13, 10, 0
 
 %include "boot.asm"
 
-; Rellena lo que sobre de los 510 bytes y los últimos dos son el 55 AA
-times 510 - ($ - $$) db 0
+
+;;;; COSAS DEL MBR ;;;;
+; El código del bootloader debe terminar antes del byte 446
+times 446 - ($ - $$) db 0
+
+; Entrada de partición 1 - 16 bytes
+db 80h                  ; 1 byte: partición activa/booteable
+
+db 00h                  ; Head inicial
+db 02h                  ; Sector inicial = 2
+db 00h                  ; Cylinder inicial = 0
+
+db 01h                  ; Tipo de partición: FAT12
+
+db 01h                  ; Head final = 1
+db 12h                  ; Sector final = 18
+db 4Fh                  ; Cylinder final = 79
+
+dd 1                    ; LBA inicial = sector 2 físico
+dd 2879                 ; cantidad de sectores
+
+
+; Las otras 3 entradas de partición quedan vacías
+times 16 * 3 db 0
+
+
 dw 0xAA55
