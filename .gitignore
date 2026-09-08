@@ -8,3 +8,12 @@
 *.swp
 *~
 .DS_Store
+
+# Objetos y binarios de compilación UEFI
+*.o
+*.so
+BOOTX64.EFI
+
+# Archivos temporales de editores
+*.swp
+*~
